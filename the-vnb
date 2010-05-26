@@ -27,6 +27,9 @@ class nfo_gui:
 		self.contents_store = gtk.TreeStore(str);
 		self.search_store = gtk.TreeStore(str)
 
+		# Setup ListStore for displaying icons of poster and fanart
+		self.poster_store = gtk.ListStore(gtk.gdk.Pixbuf)
+
 
 		# Set default path for movies
 		self.filechooser = self.builder.get_object('filechooser')
@@ -62,6 +65,7 @@ class nfo_gui:
 		
 		#self.fanart = self.builder.get_object('fanart')
 		#self.fanart_image = self.builder.get_object('fanart_image')
+		self.poster_icons = self.builder.get_object('poster_icons')
 		self.search_view = self.builder.get_object('search_view')
 		self.title_entry = self.builder.get_object('title_entry')
 		self.imdb_entry = self.builder.get_object('imdb_entry')
@@ -82,12 +86,22 @@ class nfo_gui:
 		self.previous_cursor = -1
 		self.page_opener = urllib2.build_opener()
 
+		#self.poster_image.set_from_file('movie_thumb.jpg')
 		self.poster_filename = ""
 		self.back_filename = ""
 
 		# Setup menu item
 		self.save_menu_item = self.builder.get_object('save_menu_item')
 		self.save_menu_item.connect_object("activate", self.save_nfo, "file.save")
+
+		# Test icon view
+		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('movie_thumb.jpg', 136, 120)
+		#pixbuf = self.poster_icons.render_icon('movie_thumb.jpg', size=gtk.ICON_SIZE_BUTTON, detail=None)
+		if not pixbuf:
+			print "Couldn't load image"
+		self.poster_store.append([pixbuf])
+		self.poster_icons.set_model(self.poster_store)
+		self.poster_icons.set_pixbuf_column(0)
 
 	def save_nfo(self, other):
 
@@ -373,7 +387,6 @@ class nfo_gui:
 		
 	def fill_contents_store(self, path):
 		self.contents_store.clear()
-		#img = gtk.icon_theme_get_default().load_icon('folder', gtk.ICON_SIZE_MENU, 0)
 		for f in os.listdir(path):
 			fullname = os.path.join(path, f)
 			is_dir = os.path.isdir(fullname)
@@ -383,9 +396,6 @@ class nfo_gui:
 
 	def populate_folder_view(self, fc):
 		fv = self.builder.get_object("folder_view")
-		#print fc.get_current_folder()
-		#print fc.get_current_folder_file()
-		#print fc.get_title()
 		folder_name = fc.get_filename()
 		if folder_name == "":
 			folder_name = fc.get_current_folder()
