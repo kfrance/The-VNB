@@ -1,3 +1,4 @@
+#! /usr/bin/python
 import sys
 import os
 import gtk
@@ -34,7 +35,7 @@ class nfo_gui:
 
 		# Setup file viewer
 		fv = self.builder.get_object('folder_view')
-		col = gtk.TreeViewColumn("Folder")
+		col = gtk.TreeViewColumn("Root Movie Folder")
 		coll_cell_text = gtk.CellRendererText()
 		col.pack_start(coll_cell_text, True)
 		col.add_attribute(coll_cell_text, "text", 0)
@@ -87,9 +88,10 @@ class nfo_gui:
 		# Setup menu item
 		self.save_menu_item = self.builder.get_object('save_menu_item')
 		self.save_menu_item.connect_object("activate", self.save_nfo, "file.save")
-		#self.save_menu_item.connect_object("file.save", self.save_nfo, self.save_menu_item)
 
 	def save_nfo(self, other):
+
+
 		# Get folder to save in
 		foldersel = gtk.FileChooserDialog(title="Select folder to save into", parent=None,
 				action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, buttons = (gtk.STOCK_CANCEL, 
@@ -148,9 +150,13 @@ class nfo_gui:
 		id = movie.movieID
 		poster_folder = os.path.join(tempfile.gettempdir(),  "posters_" + id)
 		back_folder = os.path.join(tempfile.gettempdir(), "back_" + id)
-		poster_num = 0
-		back_num = 0
 		if not os.path.exists(poster_folder):
+			# Show progress bar with status of downloads
+			dialog = self.builder.get_object("progress_dialog")
+			progress = self.builder.get_object("progressbar")
+			progress.set_fraction(.0)
+			dialog.run()
+
 			os.mkdir(poster_folder)
 			os.mkdir(back_folder)
 			url = "http://api.themoviedb.org/2.1/Movie.imdbLookup/en/xml/4acde11346efa422a66666b90fea1cd0/tt" + str(id)
@@ -164,9 +170,12 @@ class nfo_gui:
 				print images
 				poster_folder = os.path.join(tempfile.gettempdir(),  "posters_" + id)
 				back_folder = os.path.join(tempfile.gettempdir(), "back_" + id)
+				image_count = 0.0
+				num_images = len(images)
 				poster_num = 0
 				back_num = 0
 				for image in images:
+					progress.set_fraction(image_count / num_images)
 					print image
 					m = re.search('type="(.*?)".*?url="(.*?)"', image)
 					if not m:
@@ -186,22 +195,26 @@ class nfo_gui:
 						print cmd
 						os.system(cmd)
 						back_num += 1
+					image_count += 1
+		dialog.destroy()
 
 		# Select Poster
-		preview = gtk.Image()
-		filesel = gtk.FileChooserDialog(title="Select poster file that you want", parent=None,
-				action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons = (gtk.STOCK_CANCEL, 
-					gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-		filesel.set_current_folder(poster_folder)
-		filesel.set_preview_widget(preview)
-		filesel.connect("update-preview", self.update_preview, preview)
-		response = filesel.run()
-		filename = ""
-		if response == gtk.RESPONSE_OK:
-			filename = filesel.get_filename()
-		filesel.destroy()
-		print filename
-		self.poster_filename = filename
+		poster_num = len(os.listdir(poster_folder))
+		if poster_num != 0:
+			preview = gtk.Image()
+			filesel = gtk.FileChooserDialog(title="Select poster file that you want", parent=None,
+					action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons = (gtk.STOCK_CANCEL, 
+						gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+			filesel.set_current_folder(poster_folder)
+			filesel.set_preview_widget(preview)
+			filesel.connect("update-preview", self.update_preview, preview)
+			response = filesel.run()
+			filename = ""
+			if response == gtk.RESPONSE_OK:
+				filename = filesel.get_filename()
+			filesel.destroy()
+			print filename
+			self.poster_filename = filename
 
 		# Select Background
 		back_num = len(os.listdir(back_folder))
@@ -373,7 +386,10 @@ class nfo_gui:
 		#print fc.get_current_folder()
 		#print fc.get_current_folder_file()
 		#print fc.get_title()
-		self.fill_contents_store(fc.get_current_folder())
+		folder_name = fc.get_filename()
+		if folder_name == "":
+			folder_name = fc.get_current_folder()
+		self.fill_contents_store(folder_name)
 		fv.set_model(self.contents_store)
 
 
