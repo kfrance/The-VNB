@@ -6,8 +6,11 @@ import pygtk
 import re
 import tempfile
 import urllib2
+import urllib
 import shutil
+from threading import Thread
 from imdb import IMDb
+gtk.gdk.threads_init()
 
 class nfo_gui:
 	wTree = gtk.Builder()
@@ -157,6 +160,55 @@ class nfo_gui:
 		fout.close()
 		#print file_str
 
+	def download_images(self,poster_folder,fanart_folder,id):
+		print "In download_images"
+		os.mkdir(poster_folder)
+		os.mkdir(fanart_folder)
+		url = "http://api.themoviedb.org/2.1/Movie.imdbLookup/en/xml/4acde11346efa422a66666b90fea1cd0/tt" + str(id)
+		print url
+		page = self.page_opener.open(url)
+		xml = page.read()
+		m = re.search("<images>(.*?)</images",xml, re.S)
+		print m
+		if m:
+			images = m.group(1).strip().split('\n')
+			image_list = []
+			print images
+			poster_folder = os.path.join(tempfile.gettempdir(),  "posters_" + id)
+			fanart_folder = os.path.join(tempfile.gettempdir(), "fanart_" + id)
+			image_count = 0.0
+			num_images = len(images)
+			poster_num = 0
+			fanart_num = 0
+			for image in images:
+				#progress.set_fraction(image_count / num_images)
+				print image
+				m = re.search('type="(.*?)".*?url="(.*?)".*?size="(.*?)"', image)
+				if not m:
+					continue
+				type = m.group(1)
+				url = m.group(2)
+				size = m.group(3)
+				ext = os.path.splitext(url)[1]
+				if type == "poster" and size == 'thumb':
+					file_name = str(poster_num).rjust(3,'0') + ext
+					full_name = os.path.join(poster_folder, file_name)
+					urllib.urlretrieve(url, full_name)
+					pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+					self.poster_store.append([pixbuf])
+					poster_num += 1
+				if type == "backdrop" and size == 'thumb':
+					file_name = str(fanart_num).rjust(3,'0') + ext
+					full_name = os.path.join(fanart_folder, file_name)
+					urllib.urlretrieve(url, full_name)
+					pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+					self.fanart_store.append([pixbuf])
+					fanart_num += 1
+				image_count += 1
+				#if gtk.events_pending():
+				#	gtk.main_iteration()
+
+
 
 	def movie_search_selected(self, sv, three, four):
 		print 'movie_search_selected'
@@ -165,64 +217,29 @@ class nfo_gui:
 		id = movie.movieID
 		poster_folder = os.path.join(tempfile.gettempdir(),  "posters_" + id)
 		fanart_folder = os.path.join(tempfile.gettempdir(), "fanart_" + id)
+		download = False
 		if not os.path.exists(poster_folder):
+			download = True
+			Thread(target=self.download_images,args=(poster_folder,fanart_folder,id)).start()
 			# Show progress bar with status of downloads
 			#dialog = self.builder.get_object("progress_dialog")
 			#progress = self.builder.get_object("progressbar")
 			#progress.set_fraction(.0)
 			#dialog.run()
 
-			os.mkdir(poster_folder)
-			os.mkdir(fanart_folder)
-			url = "http://api.themoviedb.org/2.1/Movie.imdbLookup/en/xml/4acde11346efa422a66666b90fea1cd0/tt" + str(id)
-			print url
-			page = self.page_opener.open(url)
-			xml = page.read()
-			m = re.search("<images>(.*?)</images",xml, re.S)
-			if m:
-				images = m.group(1).strip().split('\n')
-				image_list = []
-				print images
-				poster_folder = os.path.join(tempfile.gettempdir(),  "posters_" + id)
-				fanart_folder = os.path.join(tempfile.gettempdir(), "fanart_" + id)
-				image_count = 0.0
-				num_images = len(images)
-				poster_num = 0
-				fanart_num = 0
-				for image in images:
-					#progress.set_fraction(image_count / num_images)
-					print image
-					m = re.search('type="(.*?)".*?url="(.*?)".*?size="(.*?)"', image)
-					if not m:
-						continue
-					type = m.group(1)
-					url = m.group(2)
-					size = m.group(3)
-					ext = os.path.splitext(url)[1]
-					if type == "poster" and size == 'thumb':
-						cmd = "wget " + url + " -O " + os.path.join(poster_folder, 
-								str(poster_num).rjust(3,'0') + ext)
-						print cmd
-						os.system(cmd)
-						poster_num += 1
-					if type == "backdrop" and size == 'thumb':
-						cmd = "wget " + url + " -O " + os.path.join(fanart_folder, 
-								str(fanart_num).rjust(3,'0') + ext)
-						print cmd
-						os.system(cmd)
-						fanart_num += 1
-					image_count += 1
 
 		# Add posters and fanart to IconViews
-		for file in os.listdir(poster_folder):
-			full_name = os.path.join(poster_folder, file)
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
-			self.poster_store.append([pixbuf])
+		if not download:
+			for file in os.listdir(poster_folder):
+				full_name = os.path.join(poster_folder, file)
+				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+				self.poster_store.append([pixbuf])
 
-		for file in os.listdir(fanart_folder):
-			full_name = os.path.join(fanart_folder, file)
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
-			self.fanart_store.append([pixbuf])
+		if not download:
+			for file in os.listdir(fanart_folder):
+				full_name = os.path.join(fanart_folder, file)
+				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+				self.fanart_store.append([pixbuf])
 
 		# Select Poster
 		#poster_num = len(os.listdir(poster_folder))
@@ -346,8 +363,7 @@ class nfo_gui:
 			if os.path.exists(local_file):
 				self.poster_image.set_from_file(local_file)
 			else:
-				cmd = 'wget ' + movie['cover url'] + ' -O ' + local_file
-				os.system(cmd)
+				urllib.urlretrieve(movie['cover url'],local_file)
 				self.poster_image.set_from_file(local_file)
 		else:
 			self.poster_image.clear()
