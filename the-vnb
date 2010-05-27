@@ -29,6 +29,7 @@ class nfo_gui:
 
 		# Setup ListStore for displaying icons of poster and fanart
 		self.poster_store = gtk.ListStore(gtk.gdk.Pixbuf)
+		self.fanart_store = gtk.ListStore(gtk.gdk.Pixbuf)
 
 
 		# Set default path for movies
@@ -65,6 +66,7 @@ class nfo_gui:
 		
 		#self.fanart = self.builder.get_object('fanart')
 		#self.fanart_image = self.builder.get_object('fanart_image')
+		self.fanart_icons = self.builder.get_object('fanart_icons')
 		self.poster_icons = self.builder.get_object('poster_icons')
 		self.search_view = self.builder.get_object('search_view')
 		self.title_entry = self.builder.get_object('title_entry')
@@ -88,24 +90,23 @@ class nfo_gui:
 
 		#self.poster_image.set_from_file('movie_thumb.jpg')
 		self.poster_filename = ""
-		self.back_filename = ""
+		self.fanart_filename = ""
 
 		# Setup menu item
 		self.save_menu_item = self.builder.get_object('save_menu_item')
 		self.save_menu_item.connect_object("activate", self.save_nfo, "file.save")
 
 		# Test icon view
-		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('movie_thumb.jpg', 136, 120)
-		#pixbuf = self.poster_icons.render_icon('movie_thumb.jpg', size=gtk.ICON_SIZE_BUTTON, detail=None)
-		if not pixbuf:
-			print "Couldn't load image"
-		self.poster_store.append([pixbuf])
+		#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('movie_thumb.jpg', 136, 120)
+		#if not pixbuf:
+		#	print "Couldn't load image"
+		#self.poster_store.append([pixbuf])
 		self.poster_icons.set_model(self.poster_store)
 		self.poster_icons.set_pixbuf_column(0)
+		self.fanart_icons.set_model(self.fanart_store)
+		self.fanart_icons.set_pixbuf_column(0)
 
 	def save_nfo(self, other):
-
-
 		# Get folder to save in
 		foldersel = gtk.FileChooserDialog(title="Select folder to save into", parent=None,
 				action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, buttons = (gtk.STOCK_CANCEL, 
@@ -118,10 +119,10 @@ class nfo_gui:
 
 		ext = os.path.splitext(self.poster_filename)[1]
 		poster = os.path.join(folder, 'folder' + ext)
-		ext = os.path.splitext(self.back_filename)[1]
-		back = os.path.join(folder, 'fanart' + ext)
+		ext = os.path.splitext(self.fanart_filename)[1]
+		fanart = os.path.join(folder, 'fanart' + ext)
 		shutil.copyfile(self.poster_filename, poster)
-		shutil.copyfile(self.back_filename, back)
+		shutil.copyfile(self.fanart_filename, fanart)
 		
 
 		file_str = '''<?xml version="1.0" encoding="utf-8"?>\n<movie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n'''
@@ -141,7 +142,7 @@ class nfo_gui:
 		file_str += '<runtime>' + self.runtime_entry.get_text() + '</runtime>\n'
 		file_str += '<studio>' + self.studio_entry.get_text() + '</studio>\n'
 		file_str += '<rating>' + self.rating_entry.get_text() + '</rating>\n'
-		file_str += '<fanart>' + os.path.split(back)[1] + '</fanart>\n'
+		file_str += '<fanart>' + os.path.split(fanart)[1] + '</fanart>\n'
 		file_str += '<thumb>' + os.path.split(poster)[1] + '</thumb>\n'
 		file_str += '</movie>'
 		# TODO: figure out cast
@@ -163,16 +164,16 @@ class nfo_gui:
 		movie = self.current_search_results[num]
 		id = movie.movieID
 		poster_folder = os.path.join(tempfile.gettempdir(),  "posters_" + id)
-		back_folder = os.path.join(tempfile.gettempdir(), "back_" + id)
+		fanart_folder = os.path.join(tempfile.gettempdir(), "fanart_" + id)
 		if not os.path.exists(poster_folder):
 			# Show progress bar with status of downloads
-			dialog = self.builder.get_object("progress_dialog")
-			progress = self.builder.get_object("progressbar")
-			progress.set_fraction(.0)
-			dialog.run()
+			#dialog = self.builder.get_object("progress_dialog")
+			#progress = self.builder.get_object("progressbar")
+			#progress.set_fraction(.0)
+			#dialog.run()
 
 			os.mkdir(poster_folder)
-			os.mkdir(back_folder)
+			os.mkdir(fanart_folder)
 			url = "http://api.themoviedb.org/2.1/Movie.imdbLookup/en/xml/4acde11346efa422a66666b90fea1cd0/tt" + str(id)
 			print url
 			page = self.page_opener.open(url)
@@ -183,85 +184,99 @@ class nfo_gui:
 				image_list = []
 				print images
 				poster_folder = os.path.join(tempfile.gettempdir(),  "posters_" + id)
-				back_folder = os.path.join(tempfile.gettempdir(), "back_" + id)
+				fanart_folder = os.path.join(tempfile.gettempdir(), "fanart_" + id)
 				image_count = 0.0
 				num_images = len(images)
 				poster_num = 0
-				back_num = 0
+				fanart_num = 0
 				for image in images:
-					progress.set_fraction(image_count / num_images)
+					#progress.set_fraction(image_count / num_images)
 					print image
-					m = re.search('type="(.*?)".*?url="(.*?)"', image)
+					m = re.search('type="(.*?)".*?url="(.*?)".*?size="(.*?)"', image)
 					if not m:
 						continue
 					type = m.group(1)
 					url = m.group(2)
+					size = m.group(3)
 					ext = os.path.splitext(url)[1]
-					if type == "poster":
+					if type == "poster" and size == 'thumb':
 						cmd = "wget " + url + " -O " + os.path.join(poster_folder, 
 								str(poster_num).rjust(3,'0') + ext)
 						print cmd
 						os.system(cmd)
 						poster_num += 1
-					if type == "backdrop":
-						cmd = "wget " + url + " -O " + os.path.join(back_folder, 
-								str(back_num).rjust(3,'0') + ext)
+					if type == "backdrop" and size == 'thumb':
+						cmd = "wget " + url + " -O " + os.path.join(fanart_folder, 
+								str(fanart_num).rjust(3,'0') + ext)
 						print cmd
 						os.system(cmd)
-						back_num += 1
+						fanart_num += 1
 					image_count += 1
-		dialog.destroy()
+
+		# Add posters and fanart to IconViews
+		for file in os.listdir(poster_folder):
+			full_name = os.path.join(poster_folder, file)
+			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+			self.poster_store.append([pixbuf])
+
+		for file in os.listdir(fanart_folder):
+			full_name = os.path.join(fanart_folder, file)
+			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+			self.fanart_store.append([pixbuf])
 
 		# Select Poster
-		poster_num = len(os.listdir(poster_folder))
-		if poster_num != 0:
-			preview = gtk.Image()
-			filesel = gtk.FileChooserDialog(title="Select poster file that you want", parent=None,
-					action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons = (gtk.STOCK_CANCEL, 
-						gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-			filesel.set_current_folder(poster_folder)
-			filesel.set_preview_widget(preview)
-			filesel.connect("update-preview", self.update_preview, preview)
-			response = filesel.run()
-			filename = ""
-			if response == gtk.RESPONSE_OK:
-				filename = filesel.get_filename()
-			filesel.destroy()
-			print filename
-			self.poster_filename = filename
+		#poster_num = len(os.listdir(poster_folder))
+		#if poster_num != 0:
+		#	preview = gtk.Image()
+		#	filesel = gtk.FileChooserDialog(title="Select poster file that you want", parent=None,
+		#			action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons = (gtk.STOCK_CANCEL, 
+		#				gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+		#	filesel.set_current_folder(poster_folder)
+		#	filesel.set_preview_widget(preview)
+		#	filesel.connect("update-preview", self.update_preview, preview)
+		#	response = filesel.run()
+		#	filename = ""
+		#	if response == gtk.RESPONSE_OK:
+		#		filename = filesel.get_filename()
+		#	filesel.destroy()
+		#	print filename
+		#	self.poster_filename = filename
 
-		# Select Background
-		back_num = len(os.listdir(back_folder))
-		if back_num != 0:
-			preview = gtk.Image()
-			filesel = gtk.FileChooserDialog(title="Select background file that you want", parent=None,
-					action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons = (gtk.STOCK_CANCEL, 
-						gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-			filesel.set_current_folder(back_folder)
-			filesel.set_preview_widget(preview)
-			filesel.connect("update-preview", self.update_preview, preview)
-			response = filesel.run()
-			filename = ""
-			if response == gtk.RESPONSE_OK:
-				filename = filesel.get_filename()
-			filesel.destroy()
-			print filename
-			self.back_filename = filename
+		## Select Background
+		#back_num = len(os.listdir(back_folder))
+		#if back_num != 0:
+		#	preview = gtk.Image()
+		#	filesel = gtk.FileChooserDialog(title="Select background file that you want", parent=None,
+		#			action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons = (gtk.STOCK_CANCEL, 
+		#				gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+		#	filesel.set_current_folder(back_folder)
+		#	filesel.set_preview_widget(preview)
+		#	filesel.connect("update-preview", self.update_preview, preview)
+		#	response = filesel.run()
+		#	filename = ""
+		#	if response == gtk.RESPONSE_OK:
+		#		filename = filesel.get_filename()
+		#	filesel.destroy()
+		#	print filename
+		#	self.back_filename = filename
 
 
-	def update_preview(self, filesel, preview):
-		filename = filesel.get_preview_filename()
-		try:
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(filename, 256, 512)
-			preview.set_from_pixbuf(pixbuf)
-			have_preview = True
-		except:
-			have_preview = False
-		filesel.set_preview_widget_active(have_preview)
+	#def update_preview(self, filesel, preview):
+	#	filename = filesel.get_preview_filename()
+	#	try:
+	#		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(filename, 256, 512)
+	#		preview.set_from_pixbuf(pixbuf)
+	#		have_preview = True
+	#	except:
+	#		have_preview = False
+	#	filesel.set_preview_widget_active(have_preview)
 
 
 	def view_search(self, sv):
 		print 'view_search'
+		# Clear icon stores
+		self.poster_store.clear()
+		self.fanart_store.clear()
 		num = sv.get_cursor()[0][0]
 		if self.previous_cursor == num:
 			return

@@ -153,10 +153,17 @@
                       <object class="GtkHBox" id="hbox12">
                         <property name="visible">True</property>
                         <child>
-                          <object class="GtkIconView" id="poster_icons">
+                          <object class="GtkScrolledWindow" id="scrolledwindow4">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="columns">0</property>
+                            <property name="hscrollbar_policy">automatic</property>
+                            <property name="vscrollbar_policy">automatic</property>
+                            <child>
+                              <object class="GtkIconView" id="poster_icons">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                              </object>
+                            </child>
                           </object>
                           <packing>
                             <property name="position">0</property>
@@ -173,10 +180,17 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkIconView" id="fanart_icons">
+                          <object class="GtkScrolledWindow" id="scrolledwindow5">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="columns">1</property>
+                            <property name="hscrollbar_policy">automatic</property>
+                            <property name="vscrollbar_policy">automatic</property>
+                            <child>
+                              <object class="GtkIconView" id="fanart_icons">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                              </object>
+                            </child>
                           </object>
                           <packing>
                             <property name="position">2</property>
