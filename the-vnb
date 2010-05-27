@@ -92,42 +92,25 @@ class nfo_gui:
 		self.page_opener = urllib2.build_opener()
 
 		#self.poster_image.set_from_file('movie_thumb.jpg')
-		self.poster_filename = ""
-		self.fanart_filename = ""
+		self.poster_list = []
+		self.fanart_list = []
 
 		# Setup menu item
 		self.save_menu_item = self.builder.get_object('save_menu_item')
-		self.save_menu_item.connect_object("activate", self.save_nfo, "file.save")
+		self.save_menu_item.connect_object("activate", self.select_nfo_folder, "file.save")
 
-		# Test icon view
-		#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('movie_thumb.jpg', 136, 120)
-		#if not pixbuf:
-		#	print "Couldn't load image"
-		#self.poster_store.append([pixbuf])
+		# Set store for IconViews
 		self.poster_icons.set_model(self.poster_store)
 		self.poster_icons.set_pixbuf_column(0)
 		self.fanart_icons.set_model(self.fanart_store)
 		self.fanart_icons.set_pixbuf_column(0)
 
-	def save_nfo(self, other):
-		# Get folder to save in
-		foldersel = gtk.FileChooserDialog(title="Select folder to save into", parent=None,
-				action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, buttons = (gtk.STOCK_CANCEL, 
-					gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-		response = foldersel.run()
-		folder = ""
-		if response == gtk.RESPONSE_OK:
-			folder = foldersel.get_filename()
-		foldersel.destroy()
+	def save_out_nfo(self, poster_url, fanart_url, poster, fanart, folder):
+		# Download images
+		urllib.urlretrieve(poster_url, poster)
+		urllib.urlretrieve(fanart_url, fanart)
 
-		ext = os.path.splitext(self.poster_filename)[1]
-		poster = os.path.join(folder, 'folder' + ext)
-		ext = os.path.splitext(self.fanart_filename)[1]
-		fanart = os.path.join(folder, 'fanart' + ext)
-		shutil.copyfile(self.poster_filename, poster)
-		shutil.copyfile(self.fanart_filename, fanart)
-		
-
+		# Save out nfo
 		file_str = '''<?xml version="1.0" encoding="utf-8"?>\n<movie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n'''
 		file_str += '<title>' + self.title_entry.get_text() + "</title>\n"
 		file_str += "<year>" + self.year_entry.get_text() + '</year>\n'
@@ -151,29 +134,53 @@ class nfo_gui:
 		# TODO: figure out cast
 		nfo_filename = os.path.join(folder, self.title_entry.get_text() + '.nfo')
 		nfo_filename2 = os.path.join(folder, 'movie.nfo')
-		print nfo_filename
 		fout = open(nfo_filename, 'w')
 		fout.write(file_str)
 		fout.close()
 		fout = open(nfo_filename2, 'w')
 		fout.write(file_str)
 		fout.close()
-		#print file_str
+
+	def select_nfo_folder(self, other):
+		# Get folder to save in
+		foldersel = gtk.FileChooserDialog(title="Select folder to save into", parent=None,
+				action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, buttons = (gtk.STOCK_CANCEL, 
+					gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+		response = foldersel.run()
+		folder = ""
+		if response == gtk.RESPONSE_OK:
+			folder = foldersel.get_filename()
+		foldersel.destroy()
+
+		# Get the poster image to download
+		items = self.poster_icons.get_selected_items()
+		thumb = re.sub('\*', '/', self.poster_list[items[0][0]])
+		ext = os.path.splitext(thumb)[1]
+		poster = os.path.join(folder, 'folder' + ext)
+		poster_url = re.sub('thumb', 'original', thumb)
+
+		# Get the fanart image to download
+		items = self.fanart_icons.get_selected_items()
+		thumb = re.sub('\*', '/', self.fanart_list[items[0][0]])
+		ext = os.path.splitext(thumb)[1]
+		fanart = os.path.join(folder, 'fanart' + ext)
+		fanart_url = re.sub('thumb', 'original', thumb)
+
+		# Save out nfo in a seperate thread
+		Thread(target=self.save_out_nfo,args=(poster_url,fanart_url,poster,fanart,folder)).start()
+		
+
 
 	def download_images(self,poster_folder,fanart_folder,id):
-		print "In download_images"
 		os.mkdir(poster_folder)
 		os.mkdir(fanart_folder)
 		url = "http://api.themoviedb.org/2.1/Movie.imdbLookup/en/xml/4acde11346efa422a66666b90fea1cd0/tt" + str(id)
-		print url
 		page = self.page_opener.open(url)
 		xml = page.read()
 		m = re.search("<images>(.*?)</images",xml, re.S)
-		print m
 		if m:
 			images = m.group(1).strip().split('\n')
 			image_list = []
-			print images
 			poster_folder = os.path.join(tempfile.gettempdir(),  "posters_" + id)
 			fanart_folder = os.path.join(tempfile.gettempdir(), "fanart_" + id)
 			image_count = 0.0
@@ -182,7 +189,6 @@ class nfo_gui:
 			fanart_num = 0
 			for image in images:
 				#progress.set_fraction(image_count / num_images)
-				print image
 				m = re.search('type="(.*?)".*?url="(.*?)".*?size="(.*?)"', image)
 				if not m:
 					continue
@@ -191,18 +197,22 @@ class nfo_gui:
 				size = m.group(3)
 				ext = os.path.splitext(url)[1]
 				if type == "poster" and size == 'thumb':
-					file_name = str(poster_num).rjust(3,'0') + ext
+					#file_name = str(poster_num).rjust(3,'0') + ext
+					file_name = re.sub("/", "*", url)
 					full_name = os.path.join(poster_folder, file_name)
 					urllib.urlretrieve(url, full_name)
 					pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
 					self.poster_store.append([pixbuf])
+					self.poster_list.append(filename)
 					poster_num += 1
 				if type == "backdrop" and size == 'thumb':
-					file_name = str(fanart_num).rjust(3,'0') + ext
+					#file_name = str(fanart_num).rjust(3,'0') + ext
+					file_name = re.sub("/", "*", url)
 					full_name = os.path.join(fanart_folder, file_name)
 					urllib.urlretrieve(url, full_name)
 					pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
 					self.fanart_store.append([pixbuf])
+					self.fanart_list.append(filename)
 					fanart_num += 1
 				image_count += 1
 				#if gtk.events_pending():
@@ -211,7 +221,6 @@ class nfo_gui:
 
 
 	def movie_search_selected(self, sv, three, four):
-		print 'movie_search_selected'
 		num = sv.get_cursor()[0][0]
 		movie = self.current_search_results[num]
 		id = movie.movieID
@@ -234,63 +243,17 @@ class nfo_gui:
 				full_name = os.path.join(poster_folder, file)
 				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
 				self.poster_store.append([pixbuf])
+				self.poster_list.append(file)
 
 		if not download:
 			for file in os.listdir(fanart_folder):
 				full_name = os.path.join(fanart_folder, file)
 				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
 				self.fanart_store.append([pixbuf])
-
-		# Select Poster
-		#poster_num = len(os.listdir(poster_folder))
-		#if poster_num != 0:
-		#	preview = gtk.Image()
-		#	filesel = gtk.FileChooserDialog(title="Select poster file that you want", parent=None,
-		#			action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons = (gtk.STOCK_CANCEL, 
-		#				gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-		#	filesel.set_current_folder(poster_folder)
-		#	filesel.set_preview_widget(preview)
-		#	filesel.connect("update-preview", self.update_preview, preview)
-		#	response = filesel.run()
-		#	filename = ""
-		#	if response == gtk.RESPONSE_OK:
-		#		filename = filesel.get_filename()
-		#	filesel.destroy()
-		#	print filename
-		#	self.poster_filename = filename
-
-		## Select Background
-		#back_num = len(os.listdir(back_folder))
-		#if back_num != 0:
-		#	preview = gtk.Image()
-		#	filesel = gtk.FileChooserDialog(title="Select background file that you want", parent=None,
-		#			action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons = (gtk.STOCK_CANCEL, 
-		#				gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-		#	filesel.set_current_folder(back_folder)
-		#	filesel.set_preview_widget(preview)
-		#	filesel.connect("update-preview", self.update_preview, preview)
-		#	response = filesel.run()
-		#	filename = ""
-		#	if response == gtk.RESPONSE_OK:
-		#		filename = filesel.get_filename()
-		#	filesel.destroy()
-		#	print filename
-		#	self.back_filename = filename
-
-
-	#def update_preview(self, filesel, preview):
-	#	filename = filesel.get_preview_filename()
-	#	try:
-	#		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(filename, 256, 512)
-	#		preview.set_from_pixbuf(pixbuf)
-	#		have_preview = True
-	#	except:
-	#		have_preview = False
-	#	filesel.set_preview_widget_active(have_preview)
+				self.fanart_list.append(file)
 
 
 	def view_search(self, sv):
-		print 'view_search'
 		# Clear icon stores
 		self.poster_store.clear()
 		self.fanart_store.clear()

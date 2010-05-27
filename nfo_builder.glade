@@ -5,7 +5,7 @@
   <object class="GtkWindow" id="main_window">
     <property name="border_width">6</property>
     <property name="title" translatable="yes">Make NFO</property>
-    <property name="default_width">700</property>
+    <property name="default_width">850</property>
     <property name="default_height">700</property>
     <child>
       <object class="GtkVBox" id="vbox1">
