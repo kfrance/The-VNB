@@ -52,15 +52,14 @@ class nfo_gui:
 		fv.connect("row-activated", self.select_folder)
 
 		# Setup search viewer
-		sv = self.builder.get_object('search_view')
+		self.search_results = self.builder.get_object('search_view')
 		col = gtk.TreeViewColumn("Search Results")
 		col_cell_text = gtk.CellRendererText()
 		col.pack_start(col_cell_text, True)
 		col.add_attribute(col_cell_text, "text", 0)
-		sv.set_model(self.search_store)
-		sv.append_column(col)
-		sv.connect('cursor-changed', self.view_search)
-		sv.connect('row-activated', self.movie_search_selected)
+		self.search_results.set_model(self.search_store)
+		self.search_results.append_column(col)
+		self.search_results.connect('cursor-changed', self.view_search)
 
 		# Setup seach button
 		self.search_button = self.builder.get_object('search_button')
@@ -69,6 +68,7 @@ class nfo_gui:
 		
 		#self.fanart = self.builder.get_object('fanart')
 		#self.fanart_image = self.builder.get_object('fanart_image')
+		self.download_button = self.builder.get_object('download_button')
 		self.fanart_icons = self.builder.get_object('fanart_icons')
 		self.poster_icons = self.builder.get_object('poster_icons')
 		self.search_view = self.builder.get_object('search_view')
@@ -94,6 +94,11 @@ class nfo_gui:
 		#self.poster_image.set_from_file('movie_thumb.jpg')
 		self.poster_list = []
 		self.fanart_list = []
+
+		# Setup download button
+		self.download_button.set_label("Download posters and fanart")
+		self.download_button.connect('clicked', self.start_download)
+		self.download_button.set_sensitive(False)
 
 		# Setup menu item
 		self.save_menu_item = self.builder.get_object('save_menu_item')
@@ -220,8 +225,8 @@ class nfo_gui:
 
 
 
-	def movie_search_selected(self, sv, three, four):
-		num = sv.get_cursor()[0][0]
+	def start_download(self, other):
+		num = self.search_results.get_cursor()[0][0]
 		movie = self.current_search_results[num]
 		id = movie.movieID
 		poster_folder = os.path.join(tempfile.gettempdir(),  "posters_" + id)
@@ -230,12 +235,6 @@ class nfo_gui:
 		if not os.path.exists(poster_folder):
 			download = True
 			Thread(target=self.download_images,args=(poster_folder,fanart_folder,id)).start()
-			# Show progress bar with status of downloads
-			#dialog = self.builder.get_object("progress_dialog")
-			#progress = self.builder.get_object("progressbar")
-			#progress.set_fraction(.0)
-			#dialog.run()
-
 
 		# Add posters and fanart to IconViews
 		if not download:
@@ -322,7 +321,7 @@ class nfo_gui:
 
 		# image preview
 		if 'cover url' in movie.keys():
-			local_file = '/tmp/' + movie.movieID + '.jpg'
+			local_file = os.path.join(tempfile.gettempdir(), movie.movieID + '.jpg')
 			if os.path.exists(local_file):
 				self.poster_image.set_from_file(local_file)
 			else:
@@ -360,6 +359,7 @@ class nfo_gui:
 
 		# clear status bar
 		self.statusbar.pop(self.status_context);
+		self.download_button.set_sensitive(True)
 
 	def imdb_search(self, button):
 		search_text = self.title_entry.get_text()
