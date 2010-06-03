@@ -204,17 +204,19 @@ class nfo_gui:
 					file_name = re.sub("/", "*", url)
 					full_name = os.path.join(poster_folder, file_name)
 					urllib.urlretrieve(url, full_name)
-					pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+					#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 260, 240)
+					pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 					self.poster_store.append([pixbuf])
-					self.poster_list.append(filename)
+					self.poster_list.append(file_name)
 					poster_num += 1
 				if type == "backdrop" and size == 'thumb':
 					file_name = re.sub("/", "*", url)
 					full_name = os.path.join(fanart_folder, file_name)
 					urllib.urlretrieve(url, full_name)
-					pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+					#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 260, 240)
+					pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 					self.fanart_store.append([pixbuf])
-					self.fanart_list.append(filename)
+					self.fanart_list.append(file_name)
 					fanart_num += 1
 				image_count += 1
 
@@ -239,13 +241,15 @@ class nfo_gui:
 		if not download:
 			for file in os.listdir(poster_folder):
 				full_name = os.path.join(poster_folder, file)
-				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+				#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+				pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 				self.poster_store.append([pixbuf])
 				self.poster_list.append(file)
 		if not download:
 			for file in os.listdir(fanart_folder):
 				full_name = os.path.join(fanart_folder, file)
-				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+				#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
+				pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 				self.fanart_store.append([pixbuf])
 				self.fanart_list.append(file)
 
