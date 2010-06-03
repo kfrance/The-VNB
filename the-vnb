@@ -88,7 +88,7 @@ class nfo_gui:
 		self.poster_image = self.builder.get_object('poster_image')
 		self.statusbar = self.builder.get_object('statusbar')
 		self.status_context = self.statusbar.get_context_id("my status")
-		self.previous_cursor = -1
+		#self.previous_cursor = -1
 		self.page_opener = urllib2.build_opener()
 
 		#self.poster_image.set_from_file('movie_thumb.jpg')
@@ -193,7 +193,6 @@ class nfo_gui:
 			poster_num = 0
 			fanart_num = 0
 			for image in images:
-				#progress.set_fraction(image_count / num_images)
 				m = re.search('type="(.*?)".*?url="(.*?)".*?size="(.*?)"', image)
 				if not m:
 					continue
@@ -202,7 +201,6 @@ class nfo_gui:
 				size = m.group(3)
 				ext = os.path.splitext(url)[1]
 				if type == "poster" and size == 'thumb':
-					#file_name = str(poster_num).rjust(3,'0') + ext
 					file_name = re.sub("/", "*", url)
 					full_name = os.path.join(poster_folder, file_name)
 					urllib.urlretrieve(url, full_name)
@@ -211,7 +209,6 @@ class nfo_gui:
 					self.poster_list.append(filename)
 					poster_num += 1
 				if type == "backdrop" and size == 'thumb':
-					#file_name = str(fanart_num).rjust(3,'0') + ext
 					file_name = re.sub("/", "*", url)
 					full_name = os.path.join(fanart_folder, file_name)
 					urllib.urlretrieve(url, full_name)
@@ -220,17 +217,19 @@ class nfo_gui:
 					self.fanart_list.append(filename)
 					fanart_num += 1
 				image_count += 1
-				#if gtk.events_pending():
-				#	gtk.main_iteration()
 
 
 
 	def start_download(self, other):
+		# Get which search item was selected
 		num = self.search_results.get_cursor()[0][0]
 		movie = self.current_search_results[num]
 		id = movie.movieID
+
 		poster_folder = os.path.join(tempfile.gettempdir(),  "posters_" + id)
 		fanart_folder = os.path.join(tempfile.gettempdir(), "fanart_" + id)
+
+		# If they haven't been downloaded already do it
 		download = False
 		if not os.path.exists(poster_folder):
 			download = True
@@ -243,7 +242,6 @@ class nfo_gui:
 				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
 				self.poster_store.append([pixbuf])
 				self.poster_list.append(file)
-
 		if not download:
 			for file in os.listdir(fanart_folder):
 				full_name = os.path.join(fanart_folder, file)
@@ -251,16 +249,32 @@ class nfo_gui:
 				self.fanart_store.append([pixbuf])
 				self.fanart_list.append(file)
 
+	def clear_movie_info(self):
+		self.imdb_entry.set_text('')
+		self.runtime_entry.set_text('')
+		self.year_entry.set_text('')
+		self.rating_entry.set_text('')
+		self.director_entry.set_text('')
+		self.studio_entry.set_text('')
+		self.cast_entry.set_text('')
+		self.genre_entry.set_text('')
+		self.tagline_entry.set_text('')
+		self.outline_entry.set_text('')
+		self.plot_entry.get_buffer().set_text('')
+
 
 	def view_search(self, sv):
+		print 'view_search'
 		# Clear icon stores
+		self.clear_movie_info()
 		self.poster_store.clear()
 		self.fanart_store.clear()
 		num = sv.get_cursor()[0][0]
-		if self.previous_cursor == num:
-			return
-		self.previous_cursor = num
+		#if self.previous_cursor == num:
+		#	return
+		#self.previous_cursor = num
 		movie = self.current_search_results[num]
+		print movie
 		self.statusbar.push(self.status_context, "Searching for movie " + movie['smart canonical title']);
 		movie = self.imdb.get_movie(movie.movieID)
 		self.imdb.update(movie, info=('taglines',))
