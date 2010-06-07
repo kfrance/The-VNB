@@ -8,12 +8,24 @@ import tempfile
 import urllib2
 import urllib
 import shutil
+import platform
+import xdg.BaseDirectory
+import ConfigParser
 from threading import Thread
 from imdb import IMDb
 gtk.gdk.threads_init()
 
+def get_config_dir():
+	if platform.system() in ('Windows', 'Microsoft'):
+		return os.path.join(os.environ.get('APPDATA'), 'thevnb')
+	else:
+		return xdg.BaseDirectory.save_config_path('thevnb')
+
+def write_default_config_file(filename):
+	config = ConfigParser.RawConfigParser()
+
 class nfo_gui:
-	wTree = gtk.Builder()
+	#wTree = gtk.Builder()
 
 	def __init__(self):
 		# Setup GUI from file
@@ -46,7 +58,6 @@ class nfo_gui:
 		coll_cell_text = gtk.CellRendererText()
 		col.pack_start(coll_cell_text, True)
 		col.add_attribute(coll_cell_text, "text", 0)
-		self.fill_contents_store(os.getenv("HOME"))
 		fv.set_model(self.contents_store)
 		fv.append_column(col)
 		fv.connect("row-activated", self.select_folder)
@@ -65,9 +76,6 @@ class nfo_gui:
 		self.search_button = self.builder.get_object('search_button')
 		self.search_button.connect_after("clicked", self.imdb_search)
 
-		
-		#self.fanart = self.builder.get_object('fanart')
-		#self.fanart_image = self.builder.get_object('fanart_image')
 		self.download_button = self.builder.get_object('download_button')
 		self.fanart_icons = self.builder.get_object('fanart_icons')
 		self.poster_icons = self.builder.get_object('poster_icons')
@@ -88,10 +96,8 @@ class nfo_gui:
 		self.poster_image = self.builder.get_object('poster_image')
 		self.statusbar = self.builder.get_object('statusbar')
 		self.status_context = self.statusbar.get_context_id("my status")
-		#self.previous_cursor = -1
 		self.page_opener = urllib2.build_opener()
 
-		#self.poster_image.set_from_file('movie_thumb.jpg')
 		self.poster_list = []
 		self.fanart_list = []
 
@@ -109,6 +115,24 @@ class nfo_gui:
 		self.poster_icons.set_pixbuf_column(0)
 		self.fanart_icons.set_model(self.fanart_store)
 		self.fanart_icons.set_pixbuf_column(0)
+
+		# Load in the configuration file
+		self.config = ConfigParser.RawConfigParser()
+		print get_config_dir()
+		config_file = os.path.join(get_config_dir(), 'thevnb', 'thevnb.conf')
+		if os.path.exists(config_file):
+			config.read(config_file)
+		else:
+			# Write out default config file then read it
+			write_default_config_file(config_file)
+			self.config.add_section('Program Defaults')
+			home_folder = os.environ['HOME']
+			self.config.set('Program Defaults', 'root folder', home_folder)
+
+			with open(filename, 'wb') as configfile:
+				config.write(configfile)
+		# Load content store with root folder info
+		self.fill_contents_store(self.config.get('Program Defaults', 'root folder'))
 
 	def save_out_nfo(self, poster_url, fanart_url, poster, fanart, folder):
 		# Download images
@@ -204,7 +228,6 @@ class nfo_gui:
 					file_name = re.sub("/", "*", url)
 					full_name = os.path.join(poster_folder, file_name)
 					urllib.urlretrieve(url, full_name)
-					#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 260, 240)
 					pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 					self.poster_store.append([pixbuf])
 					self.poster_list.append(file_name)
@@ -213,7 +236,6 @@ class nfo_gui:
 					file_name = re.sub("/", "*", url)
 					full_name = os.path.join(fanart_folder, file_name)
 					urllib.urlretrieve(url, full_name)
-					#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 260, 240)
 					pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 					self.fanart_store.append([pixbuf])
 					self.fanart_list.append(file_name)
@@ -241,14 +263,12 @@ class nfo_gui:
 		if not download:
 			for file in os.listdir(poster_folder):
 				full_name = os.path.join(poster_folder, file)
-				#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
 				pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 				self.poster_store.append([pixbuf])
 				self.poster_list.append(file)
 		if not download:
 			for file in os.listdir(fanart_folder):
 				full_name = os.path.join(fanart_folder, file)
-				#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(full_name, 136, 120)
 				pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 				self.fanart_store.append([pixbuf])
 				self.fanart_list.append(file)
@@ -274,11 +294,7 @@ class nfo_gui:
 		self.poster_store.clear()
 		self.fanart_store.clear()
 		num = sv.get_cursor()[0][0]
-		#if self.previous_cursor == num:
-		#	return
-		#self.previous_cursor = num
 		movie = self.current_search_results[num]
-		print movie
 		self.statusbar.push(self.status_context, "Searching for movie " + movie['smart canonical title']);
 		movie = self.imdb.get_movie(movie.movieID)
 		self.imdb.update(movie, info=('taglines',))
