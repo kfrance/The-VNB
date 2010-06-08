@@ -116,7 +116,6 @@ class nfo_gui:
 		# Load in the configuration file
 		self.config = ConfigParser.RawConfigParser()
 		config_folder = get_config_dir()
-		#print "config_folder = ", config_folder
 		config_file = os.path.join(config_folder, 'thevnb.conf')
 		if os.path.exists(config_file):
 			self.config.read(config_file)
@@ -153,8 +152,10 @@ class nfo_gui:
 
 	def save_out_nfo(self, poster_url, fanart_url, poster, fanart, folder):
 		# Download images
-		urllib.urlretrieve(poster_url, poster)
-		urllib.urlretrieve(fanart_url, fanart)
+		if poster_url:
+			urllib.urlretrieve(poster_url, poster)
+		if fanart_url:
+			urllib.urlretrieve(fanart_url, fanart)
 
 		# Create str representing NFO file
 		file_str = '''<?xml version="1.0" encoding="utf-8"?>\n<movie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n'''
@@ -174,8 +175,14 @@ class nfo_gui:
 		file_str += '<runtime>' + self.runtime_entry.get_text() + '</runtime>\n'
 		file_str += '<studio>' + self.studio_entry.get_text() + '</studio>\n'
 		file_str += '<rating>' + self.rating_entry.get_text() + '</rating>\n'
-		file_str += '<fanart>' + os.path.split(fanart)[1] + '</fanart>\n'
-		file_str += '<thumb>' + os.path.split(poster)[1] + '</thumb>\n'
+		if fanart:
+			file_str += '<fanart>' + os.path.split(fanart)[1] + '</fanart>\n'
+		else:
+			file_str += '<fanart></fanart>\n'
+		if poster:
+			file_str += '<thumb>' + os.path.split(poster)[1] + '</thumb>\n'
+		else:
+			file_str += '<thumb></thumb>\n'
 		file_str += '</movie>'
 		# TODO: figure out cast
 
@@ -205,21 +212,34 @@ class nfo_gui:
 			folder_num = self.folder_view.get_cursor()[0][0]
 			store = self.folder_view.get_model()
 			i = store.get_iter(folder_num)
-			folder = os.path.join(self.filechooser.get_current_folder(), store.get(i, 0)[0])
+			folder = self.filechooser.get_filename()
+			if folder == "":
+				folder = self.filechooser.get_current_folder()
+			folder = os.path.join(folder, store.get(i, 0)[0])
 
+		print folder
 		# Get the poster image to download
 		items = self.poster_icons.get_selected_items()
-		thumb = re.sub('\*', '/', self.poster_list[items[0][0]])
-		ext = os.path.splitext(thumb)[1]
-		poster = os.path.join(folder, 'folder' + ext)
-		poster_url = re.sub('thumb', 'original', thumb)
+		if len(items) != 0:
+			thumb = re.sub('\*', '/', self.poster_list[items[0][0]])
+			ext = os.path.splitext(thumb)[1]
+			poster = os.path.join(folder, 'folder' + ext)
+			poster_url = re.sub('thumb', 'original', thumb)
+		else:
+			poster = None
+			poster_url = None
 
 		# Get the fanart image to download
 		items = self.fanart_icons.get_selected_items()
-		thumb = re.sub('\*', '/', self.fanart_list[items[0][0]])
-		ext = os.path.splitext(thumb)[1]
-		fanart = os.path.join(folder, 'fanart' + ext)
-		fanart_url = re.sub('thumb', 'original', thumb)
+		if len(items) != 0:
+			thumb = re.sub('\*', '/', self.fanart_list[items[0][0]])
+			ext = os.path.splitext(thumb)[1]
+			fanart = os.path.join(folder, 'fanart' + ext)
+			fanart_url = re.sub('thumb', 'original', thumb)
+		else:
+			fanart = None
+			fanart_url = None
+
 
 		# Save out nfo in a seperate thread
 		Thread(target=self.save_out_nfo,args=(poster_url,fanart_url,poster,fanart,folder)).start()
@@ -459,8 +479,6 @@ class nfo_gui:
 				self.contents_store.append(None, [f])
 
 	def populate_folder_view(self, fc):
-		#fv = self.builder.get_object("folder_view")
-		print fc
 		folder_name = fc.get_filename()
 		if folder_name == "":
 			folder_name = fc.get_current_folder()
