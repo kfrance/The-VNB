@@ -287,7 +287,6 @@
                               <object class="GtkButton" id="button2">
                                 <property name="label" translatable="yes">Lookup</property>
                                 <property name="width_request">60</property>
-                                <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                               </object>

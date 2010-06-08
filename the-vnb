@@ -481,7 +481,9 @@ class nfo_gui:
 		
 	def fill_contents_store(self, path):
 		self.contents_store.clear()
-		for f in os.listdir(path):
+		file_list = os.listdir(path)
+		file_list.sort()
+		for f in file_list:
 			fullname = os.path.join(path, f)
 			is_dir = os.path.isdir(fullname)
 			is_hidden = True if f[0] == '.' else False
