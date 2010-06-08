@@ -266,10 +266,12 @@ class nfo_gui:
 					self.fanart_list.append(file_name)
 					fanart_num += 1
 				image_count += 1
+		self.statusbar.pop(self.status_context)
 
 
 
 	def start_download(self, other):
+		self.statusbar.push(self.status_context, "Downloading Poster and Fanart Images")
 		# Get which search item was selected
 		num = self.search_results.get_cursor()[0][0]
 		movie = self.current_search_results[num]
@@ -326,6 +328,8 @@ class nfo_gui:
 		num = sv.get_cursor()[0][0]
 		movie = self.current_search_results[num]
 		self.statusbar.push(self.status_context, "Searching for movie " + movie['smart canonical title']);
+		while gtk.events_pending() or gtk.gdk.events_pending():
+			gtk.main_iteration_do(True)
 		movie = self.imdb.get_movie(movie.movieID)
 		self.imdb.update(movie, info=('taglines',))
 
