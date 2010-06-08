@@ -168,8 +168,8 @@ class nfo_gui:
 			urllib.urlretrieve(fanart_url, fanart)
 
 		# Create str representing NFO file
-		file_str = '''<?xml version="1.0" encoding="utf-8"?>\n<movie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n'''
-		file_str += '<title>' + self.title_entry.get_text() + "</title>\n"
+		file_str = u'''<?xml version="1.0" encoding="utf-8"?>\n<movie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n'''
+		file_str += u'<title>' + self.title_entry.get_text() + u"</title>\n"
 		file_str += "<year>" + self.year_entry.get_text() + '</year>\n'
 		file_str += "<outline>" + self.outline_entry.get_text() + '</outline>\n'
 		buf = self.plot_entry.get_buffer()
@@ -193,8 +193,13 @@ class nfo_gui:
 			file_str += '<thumb>' + os.path.split(poster)[1] + '</thumb>\n'
 		else:
 			file_str += '<thumb></thumb>\n'
+		for actor in self.cast_entry.get_text().split(','):
+			actor = actor.strip()
+			file_str += '<actor>\n\t<name>' + actor + '</name>\n</actor>\n'
+
+		# Finish file
 		file_str += '</movie>'
-		# TODO: figure out cast
+		
 
 		nfo_filename = os.path.join(folder, self.title_entry.get_text() + '.nfo')
 		nfo_filename2 = os.path.join(folder, 'movie.nfo')
@@ -430,7 +435,9 @@ class nfo_gui:
 
 		# outline
 		if 'plot outline' in movie.keys():
-			self.outline_entry.set_text(movie['plot outline'])
+			outline_text = movie['plot outline']
+			sub = re.sub('(.*?)' + unicode('\xc2\xbb', 'utf-8') + '.*', '\\1', outline_text).strip()
+			self.outline_entry.set_text(sub)
 		else:
 			self.outline_entry.set_text('')
 
