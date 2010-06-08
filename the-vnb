@@ -33,6 +33,7 @@ class nfo_gui:
 		self.builder.add_from_file("nfo_builder.glade")
 		self.window = self.builder.get_object("main_window")
 		if self.window:
+			self.window.connect("window-state-event", self.window_changed_state)
 			self.window.connect("destroy", self.quit_thevnb)
 		else:
 			print "Can't get main window"
@@ -136,8 +137,17 @@ class nfo_gui:
 		self.fill_contents_store(self.config.get('Program Defaults', 'root folder'))
 		self.filechooser.set_current_folder(self.config.get('Program Defaults', 'root folder'))
 
+	def window_changed_state(self, window, event):
+		print "Window changed state"
+		print event
+		#& gtk.gdk.WINDOW_STATE_MAXIMIZED
+
 	def quit_thevnb(self, junk):
 		print "Quiting the-vnb"
+
+		# See if the window was maximized
+		state = self.window.get_state()
+		print state & gtk.gdk.WINDOW_STATE_MAXIMIZED
 
 		# Save out where the root movie folder currently is
 		folder_name = self.filechooser.get_filename()
@@ -291,7 +301,6 @@ class nfo_gui:
 
 
 	def start_download(self, other):
-		self.statusbar.push(self.status_context, "Downloading Poster and Fanart Images")
 		# Get which search item was selected
 		num = self.search_results.get_cursor()[0][0]
 		movie = self.current_search_results[num]
@@ -303,6 +312,7 @@ class nfo_gui:
 		# If they haven't been downloaded already do it in a seperate thread
 		download = False
 		if not os.path.exists(poster_folder):
+			self.statusbar.push(self.status_context, "Downloading Poster and Fanart Images")
 			download = True
 			Thread(target=self.download_images,args=(poster_folder,fanart_folder,id)).start()
 
