@@ -9,7 +9,8 @@ import urllib2
 import urllib
 import shutil
 import platform
-import xdg.BaseDirectory
+if platform.system() == "Linux":
+	import xdg.BaseDirectory
 import ConfigParser
 from threading import Thread
 from imdb import IMDb
@@ -128,11 +129,12 @@ class nfo_gui:
 			# Write out default config file
 			write_default_config_file(config_file)
 			self.config.add_section('Program Defaults')
-			home_folder = os.environ['HOME']
+			#home_folder = os.environ['HOME']
+			home_folder = self.filechooser.get_current_folder()
 			self.config.set('Program Defaults', 'root folder', home_folder)
 
-			with open(config_file, 'wb') as configfile:
-				self.config.write(configfile)
+			configfile = open(config_file, 'wb')
+			self.config.write(configfile)
 		# Load content store with root folder info
 		self.fill_contents_store(self.config.get('Program Defaults', 'root folder'))
 		self.filechooser.set_current_folder(self.config.get('Program Defaults', 'root folder'))
@@ -146,8 +148,8 @@ class nfo_gui:
 		print "Quiting the-vnb"
 
 		# See if the window was maximized
-		state = self.window.get_state()
-		print state & gtk.gdk.WINDOW_STATE_MAXIMIZED
+		#state = self.window.get_state()
+		#print state & gtk.gdk.WINDOW_STATE_MAXIMIZED
 
 		# Save out where the root movie folder currently is
 		folder_name = self.filechooser.get_filename()
@@ -156,8 +158,8 @@ class nfo_gui:
 		print folder_name
 		self.config.set('Program Defaults', 'root folder', folder_name)
 		config_file = os.path.join(get_config_dir(), 'thevnb.conf')
-		with open(config_file, 'wb') as configfile:
-			self.config.write(configfile)
+		configfile = open(config_file, 'wb')
+		self.config.write(configfile)
 		gtk.main_quit()
 
 	def save_out_nfo(self, poster_url, fanart_url, poster, fanart, folder):
