@@ -248,6 +248,9 @@ class nfo_gui:
 		folder = ""
 		if response == gtk.RESPONSE_OK:
 			folder = foldersel.get_filename()
+		else:
+			foldersel.destroy()
+			return
 		foldersel.destroy()
 
 		# Get the poster image to download
@@ -288,6 +291,9 @@ class nfo_gui:
 			folder = ""
 			if response == gtk.RESPONSE_OK:
 				folder = foldersel.get_filename()
+			else:
+				foldersel.destroy()
+				return
 			foldersel.destroy()
 		else:
 			folder_num = self.folder_view.get_cursor()[0][0]
