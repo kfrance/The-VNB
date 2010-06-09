@@ -64,6 +64,7 @@ class nfo_gui:
 		self.save_menu_item = get_glade_object(self.builder, 'save_menu_item')
 		self.save_as_menu_item = get_glade_object(self.builder, 'save_as_menu_item')
 		self.quit_menu_item = get_glade_object(self.builder, 'quit_menu_item')
+		self.save_button = get_glade_object(self.builder, 'save_button')
 
 		# Setup tree stores for displaying folder contents and search results
 		self.contents_store = gtk.TreeStore(str);
@@ -120,6 +121,7 @@ class nfo_gui:
 		self.filechooser.connect("current_folder_changed", self.populate_folder_view)
 		self.download_button.connect('clicked', self.start_download)
 		self.save_menu_item.connect_object("activate", self.save_select_nfo_folder, "file.save")
+		self.save_button.connect_after("clicked", self.save_select_nfo_folder)
 		self.save_as_menu_item.connect_object("activate", self.save_as_select_nfo_folder, "file.saveas")
 		self.quit_menu_item.connect_object("activate", self.quit_thevnb, "file.quit")
 
@@ -367,12 +369,16 @@ class nfo_gui:
 
 		# Add posters and fanart to IconViews
 		if not download:
+			self.poster_store.clear()
+			poster_list = []
 			for file in os.listdir(poster_folder):
 				full_name = os.path.join(poster_folder, file)
 				pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 				self.poster_store.append([pixbuf])
 				self.poster_list.append(file)
 		if not download:
+			fanart_list = []
+			self.fanart_store.clear()
 			for file in os.listdir(fanart_folder):
 				full_name = os.path.join(fanart_folder, file)
 				pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
