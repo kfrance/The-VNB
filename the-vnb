@@ -22,23 +22,48 @@ def get_config_dir():
 	else:
 		return xdg.BaseDirectory.save_config_path('thevnb')
 
-def write_default_config_file(filename):
-	config = ConfigParser.RawConfigParser()
+def get_glade_object(builder, name):
+	tmp = builder.get_object(name)
+	if tmp:
+		return tmp
+	else:
+		print "Can't load item from glade file. Is it corrupted?"
+		exit(-1)
+
 
 class nfo_gui:
-	#wTree = gtk.Builder()
-
 	def __init__(self):
 		# Setup GUI from file
 		self.builder = gtk.Builder()
-		self.builder.add_from_file("nfo_builder.glade")
-		self.window = self.builder.get_object("main_window")
-		if self.window:
-			self.window.connect("window-state-event", self.window_changed_state)
-			self.window.connect("destroy", self.quit_thevnb)
-		else:
-			print "Can't get main window"
-			exit(0)
+		self.builder.add_from_file("the-vnb.glade")
+
+		# Get references to GUI objects
+		self.window = get_glade_object(self.builder, "main_window")
+		self.search_results = get_glade_object(self.builder, 'search_view')
+		self.search_button = get_glade_object(self.builder, 'search_button')
+		self.folder_view = get_glade_object(self.builder, 'folder_view')
+		self.filechooser = get_glade_object(self.builder, 'filechooser')
+		self.download_button = get_glade_object(self.builder, 'download_button')
+		self.fanart_icons = get_glade_object(self.builder, 'fanart_icons')
+		self.poster_icons = get_glade_object(self.builder, 'poster_icons')
+		self.search_view = get_glade_object(self.builder, 'search_view')
+		self.title_entry = get_glade_object(self.builder, 'title_entry')
+		self.imdb_entry = get_glade_object(self.builder, 'imdb_entry')
+		self.runtime_entry = get_glade_object(self.builder, 'runtime_entry')
+		self.rating_entry = get_glade_object(self.builder, 'rating_entry')
+		self.year_entry = get_glade_object(self.builder, 'year_entry')
+		self.studio_entry = get_glade_object(self.builder, 'studio_entry')
+		self.director_entry = get_glade_object(self.builder, 'director_entry')
+		self.cast_entry = get_glade_object(self.builder, 'cast_entry')
+		self.genre_entry = get_glade_object(self.builder, 'genre_entry')
+		self.tagline_entry = get_glade_object(self.builder, 'tagline_entry')
+		self.outline_entry = get_glade_object(self.builder, 'outline_entry')
+		self.plot_entry = get_glade_object(self.builder, 'plot_entry')
+		self.poster_image = get_glade_object(self.builder, 'poster_image')
+		self.statusbar = get_glade_object(self.builder, 'statusbar')
+		self.save_menu_item = get_glade_object(self.builder, 'save_menu_item')
+		self.save_as_menu_item = get_glade_object(self.builder, 'save_as_menu_item')
+		self.quit_menu_item = get_glade_object(self.builder, 'quit_menu_item')
 
 		# Setup tree stores for displaying folder contents and search results
 		self.contents_store = gtk.TreeStore(str);
@@ -47,73 +72,56 @@ class nfo_gui:
 		# Setup ListStore for displaying icons of poster and fanart
 		self.poster_store = gtk.ListStore(gtk.gdk.Pixbuf)
 		self.fanart_store = gtk.ListStore(gtk.gdk.Pixbuf)
+		self.poster_list = []
+		self.fanart_list = []
 
-		# Setup file viewer
-		self.folder_view = self.builder.get_object('folder_view')
+
+		# Setup root movie folder viewer
 		col = gtk.TreeViewColumn("Root Movie Folder")
 		coll_cell_text = gtk.CellRendererText()
 		col.pack_start(coll_cell_text, True)
 		col.add_attribute(coll_cell_text, "text", 0)
 		self.folder_view.set_model(self.contents_store)
 		self.folder_view.append_column(col)
-		self.folder_view.connect("row-activated", self.select_folder)
 
-		# Setup search viewer
-		self.search_results = self.builder.get_object('search_view')
+		# Setup search results viewer
 		col = gtk.TreeViewColumn("Search Results")
 		col_cell_text = gtk.CellRendererText()
 		col.pack_start(col_cell_text, True)
 		col.add_attribute(col_cell_text, "text", 0)
 		self.search_results.set_model(self.search_store)
 		self.search_results.append_column(col)
-		self.search_results.connect('cursor-changed', self.view_search)
 
-		# Setup seach button
-		self.search_button = self.builder.get_object('search_button')
-		self.search_button.connect_after("clicked", self.imdb_search)
-
-		self.filechooser = self.builder.get_object('filechooser')
-		self.filechooser.connect("current_folder_changed", self.populate_folder_view)
-
-		self.download_button = self.builder.get_object('download_button')
-		self.fanart_icons = self.builder.get_object('fanart_icons')
-		self.poster_icons = self.builder.get_object('poster_icons')
-		self.search_view = self.builder.get_object('search_view')
-		self.title_entry = self.builder.get_object('title_entry')
-		self.imdb_entry = self.builder.get_object('imdb_entry')
-		self.runtime_entry = self.builder.get_object('runtime_entry')
-		self.rating_entry = self.builder.get_object('rating_entry')
-		self.year_entry = self.builder.get_object('year_entry')
-		self.studio_entry = self.builder.get_object('studio_entry')
-		self.director_entry = self.builder.get_object('director_entry')
-		self.cast_entry = self.builder.get_object('cast_entry')
-		self.genre_entry = self.builder.get_object('genre_entry')
-		self.tagline_entry = self.builder.get_object('tagline_entry')
-		self.outline_entry = self.builder.get_object('outline_entry')
-		self.plot_entry = self.builder.get_object('plot_entry')
+		# Setup imdb object
 		self.imdb = IMDb(accessSystem='http', adultSearch=0)
-		self.poster_image = self.builder.get_object('poster_image')
-		self.statusbar = self.builder.get_object('statusbar')
-		self.status_context = self.statusbar.get_context_id("my status")
-		self.page_opener = urllib2.build_opener()
 
-		self.poster_list = []
-		self.fanart_list = []
+		# Setup default statusbar context
+		self.status_context = self.statusbar.get_context_id("my status")
+
+		# Setup default page opener
+		self.page_opener = urllib2.build_opener()
 
 		# Setup download button
 		self.download_button.set_label("Download posters and fanart")
-		self.download_button.connect('clicked', self.start_download)
 		self.download_button.set_sensitive(False)
-
-		# Setup menu item
-		self.save_menu_item = self.builder.get_object('save_menu_item')
-		self.save_menu_item.connect_object("activate", self.select_nfo_folder, "file.save")
 
 		# Set store for IconViews
 		self.poster_icons.set_model(self.poster_store)
 		self.poster_icons.set_pixbuf_column(0)
 		self.fanart_icons.set_model(self.fanart_store)
 		self.fanart_icons.set_pixbuf_column(0)
+
+		# Connect signals
+		self.window.connect("window-state-event", self.window_changed_state)
+		self.window.connect("destroy", self.quit_thevnb)
+		self.folder_view.connect("row-activated", self.select_folder)
+		self.search_results.connect('cursor-changed', self.view_search)
+		self.search_button.connect_after("clicked", self.imdb_search)
+		self.filechooser.connect("current_folder_changed", self.populate_folder_view)
+		self.download_button.connect('clicked', self.start_download)
+		self.save_menu_item.connect_object("activate", self.save_select_nfo_folder, "file.save")
+		self.save_as_menu_item.connect_object("activate", self.save_as_select_nfo_folder, "file.saveas")
+		self.quit_menu_item.connect_object("activate", self.quit_thevnb, "file.quit")
 
 		# Load in the configuration file
 		self.config = ConfigParser.RawConfigParser()
@@ -127,9 +135,7 @@ class nfo_gui:
 				os.mkdir(config_folder)
 
 			# Write out default config file
-			write_default_config_file(config_file)
 			self.config.add_section('Program Defaults')
-			#home_folder = os.environ['HOME']
 			home_folder = self.filechooser.get_current_folder()
 			self.config.set('Program Defaults', 'root folder', home_folder)
 
@@ -212,7 +218,44 @@ class nfo_gui:
 		fout.write(file_str)
 		fout.close()
 
-	def select_nfo_folder(self, other):
+	def save_as_select_nfo_folder(self, other):
+		# Get folder to save in
+		foldersel = gtk.FileChooserDialog(title="Select folder to save into", parent=None,
+				action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, buttons = (gtk.STOCK_CANCEL, 
+					gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+		foldersel.set_current_folder(self.filechooser.get_current_folder())
+		response = foldersel.run()
+		folder = ""
+		if response == gtk.RESPONSE_OK:
+			folder = foldersel.get_filename()
+		foldersel.destroy()
+
+		# Get the poster image to download
+		items = self.poster_icons.get_selected_items()
+		if len(items) != 0:
+			thumb = re.sub('\*', '/', self.poster_list[items[0][0]])
+			ext = os.path.splitext(thumb)[1]
+			poster = os.path.join(folder, 'folder' + ext)
+			poster_url = re.sub('thumb', 'original', thumb)
+		else:
+			poster = None
+			poster_url = None
+
+		# Get the fanart image to download
+		items = self.fanart_icons.get_selected_items()
+		if len(items) != 0:
+			thumb = re.sub('\*', '/', self.fanart_list[items[0][0]])
+			ext = os.path.splitext(thumb)[1]
+			fanart = os.path.join(folder, 'fanart' + ext)
+			fanart_url = re.sub('thumb', 'original', thumb)
+		else:
+			fanart = None
+			fanart_url = None
+
+		# Save out nfo in a seperate thread
+		Thread(target=self.save_out_nfo,args=(poster_url,fanart_url,poster,fanart,folder)).start()
+
+	def save_select_nfo_folder(self, other):
 		cursor = self.folder_view.get_cursor()
 		if cursor[0] == None:
 			# Get folder to save in
