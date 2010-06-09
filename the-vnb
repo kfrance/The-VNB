@@ -79,6 +79,7 @@ class nfo_gui:
 		self.save_menu_item = get_glade_object(self.builder, 'save_menu_item')
 		self.save_as_menu_item = get_glade_object(self.builder, 'save_as_menu_item')
 		self.quit_menu_item = get_glade_object(self.builder, 'quit_menu_item')
+		self.about_menu_item = get_glade_object(self.builder, "about_menu_item")
 		self.save_button = get_glade_object(self.builder, 'save_button')
 
 		# Setup tree stores for displaying folder contents and search results
@@ -90,7 +91,6 @@ class nfo_gui:
 		self.fanart_store = gtk.ListStore(gtk.gdk.Pixbuf)
 		self.poster_list = []
 		self.fanart_list = []
-
 
 		# Setup root movie folder viewer
 		col = gtk.TreeViewColumn("Root Movie Folder")
@@ -139,6 +139,7 @@ class nfo_gui:
 		self.save_button.connect_after("clicked", self.save_select_nfo_folder)
 		self.save_as_menu_item.connect_object("activate", self.save_as_select_nfo_folder, "file.saveas")
 		self.quit_menu_item.connect_object("activate", self.quit_thevnb, "file.quit")
+		self.about_menu_item.connect_object("activate", self.about, "file.quit")
 
 		# Load in the configuration file
 		self.config = ConfigParser.RawConfigParser()
@@ -150,26 +151,30 @@ class nfo_gui:
 			# Check if folders exists and create them if not
 			if not os.path.exists(config_folder):
 				os.mkdir(config_folder)
-
 			# Write out default config file
 			self.config.add_section('Program Defaults')
 			home_folder = self.filechooser.get_current_folder()
 			self.config.set('Program Defaults', 'root folder', home_folder)
-
 			configfile = open(config_file, 'wb')
 			self.config.write(configfile)
 		# Load content store with root folder info
 		self.fill_contents_store(self.config.get('Program Defaults', 'root folder'))
 		self.filechooser.set_current_folder(self.config.get('Program Defaults', 'root folder'))
 
+	def about(self, junk):
+		self.about_dialog = get_glade_object(self.builder, "about_dialog")
+		self.about_dialog.connect("response", lambda d, r:d.hide())
+		self.about_dialog.run()
+		#self.about_dialog.hide()
+		self.about_dialog = None
+
 	def window_changed_state(self, window, event):
-		print "Window changed state"
-		print event
+		pass
+		#print "Window changed state"
+		#print event
 		#& gtk.gdk.WINDOW_STATE_MAXIMIZED
 
 	def quit_thevnb(self, junk):
-		print "Quiting the-vnb"
-
 		# See if the window was maximized
 		#state = self.window.get_state()
 		#print state & gtk.gdk.WINDOW_STATE_MAXIMIZED
@@ -178,7 +183,6 @@ class nfo_gui:
 		folder_name = self.filechooser.get_filename()
 		if folder_name == "":
 			folder_name = self.filechooser.get_current_folder()
-		print folder_name
 		self.config.set('Program Defaults', 'root folder', folder_name)
 		config_file = os.path.join(get_config_dir(), 'thevnb.conf')
 		configfile = open(config_file, 'wb')
@@ -186,7 +190,7 @@ class nfo_gui:
 		gtk.main_quit()
 
 	def save_out_nfo(self, poster_url, fanart_url, poster, fanart, folder):
-		# Download images
+		# Download images if we have urls
 		if poster_url:
 			urllib.urlretrieve(poster_url, poster)
 		if fanart_url:
@@ -271,6 +275,7 @@ class nfo_gui:
 		# Save out nfo in a seperate thread
 		Thread(target=self.save_out_nfo,args=(poster_url,fanart_url,poster,fanart,folder)).start()
 
+
 	def save_select_nfo_folder(self, other):
 		cursor = self.folder_view.get_cursor()
 		if cursor[0] == None:
@@ -315,7 +320,6 @@ class nfo_gui:
 		else:
 			fanart = None
 			fanart_url = None
-
 
 		# Save out nfo in a seperate thread
 		Thread(target=self.save_out_nfo,args=(poster_url,fanart_url,poster,fanart,folder)).start()
@@ -363,7 +367,6 @@ class nfo_gui:
 					fanart_num += 1
 				image_count += 1
 		self.statusbar.pop(self.status_context)
-
 
 
 	def start_download(self, other):
@@ -422,7 +425,6 @@ class nfo_gui:
 
 
 	def view_search(self, sv):
-		print 'view_search'
 		# Clear icon stores
 		self.clear_old_info()
 		num = sv.get_cursor()[0][0]
@@ -577,5 +579,3 @@ if gui == None:
 
 gui.window.show()
 gtk.main()
-
-# -identify -frames 0 -vc null -vo null -ao null"
