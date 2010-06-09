@@ -208,7 +208,6 @@ class nfo_gui:
 		# Finish file
 		file_str += '</movie>'
 		
-
 		nfo_filename = os.path.join(folder, self.title_entry.get_text() + '.nfo')
 		nfo_filename2 = os.path.join(folder, 'movie.nfo')
 		fout = open(nfo_filename, 'w')
@@ -233,7 +232,7 @@ class nfo_gui:
 		# Get the poster image to download
 		items = self.poster_icons.get_selected_items()
 		if len(items) != 0:
-			thumb = re.sub('\*', '/', self.poster_list[items[0][0]])
+			thumb = re.sub('\^', '/', self.poster_list[items[0][0]])
 			ext = os.path.splitext(thumb)[1]
 			poster = os.path.join(folder, 'folder' + ext)
 			poster_url = re.sub('thumb', 'original', thumb)
@@ -244,7 +243,7 @@ class nfo_gui:
 		# Get the fanart image to download
 		items = self.fanart_icons.get_selected_items()
 		if len(items) != 0:
-			thumb = re.sub('\*', '/', self.fanart_list[items[0][0]])
+			thumb = re.sub('\^', '/', self.fanart_list[items[0][0]])
 			ext = os.path.splitext(thumb)[1]
 			fanart = os.path.join(folder, 'fanart' + ext)
 			fanart_url = re.sub('thumb', 'original', thumb)
@@ -281,7 +280,7 @@ class nfo_gui:
 		# Get the poster image to download
 		items = self.poster_icons.get_selected_items()
 		if len(items) != 0:
-			thumb = re.sub('\*', '/', self.poster_list[items[0][0]])
+			thumb = re.sub('\^', '/', self.poster_list[items[0][0]])
 			ext = os.path.splitext(thumb)[1]
 			poster = os.path.join(folder, 'folder' + ext)
 			poster_url = re.sub('thumb', 'original', thumb)
@@ -292,7 +291,7 @@ class nfo_gui:
 		# Get the fanart image to download
 		items = self.fanart_icons.get_selected_items()
 		if len(items) != 0:
-			thumb = re.sub('\*', '/', self.fanart_list[items[0][0]])
+			thumb = re.sub('\^', '/', self.fanart_list[items[0][0]])
 			ext = os.path.splitext(thumb)[1]
 			fanart = os.path.join(folder, 'fanart' + ext)
 			fanart_url = re.sub('thumb', 'original', thumb)
@@ -330,7 +329,7 @@ class nfo_gui:
 				size = m.group(3)
 				ext = os.path.splitext(url)[1]
 				if type == "poster" and size == 'thumb':
-					file_name = re.sub("/", "*", url)
+					file_name = re.sub("/", "^", url)
 					full_name = os.path.join(poster_folder, file_name)
 					urllib.urlretrieve(url, full_name)
 					pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
@@ -338,7 +337,7 @@ class nfo_gui:
 					self.poster_list.append(file_name)
 					poster_num += 1
 				if type == "backdrop" and size == 'thumb':
-					file_name = re.sub("/", "*", url)
+					file_name = re.sub("/", "^", url)
 					full_name = os.path.join(fanart_folder, file_name)
 					urllib.urlretrieve(url, full_name)
 					pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
