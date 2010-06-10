@@ -15,5 +15,19 @@
 
 from distutils.core import setup
 import py2exe
+import glob
 
-setup(console=['the-vnb'])
+setup(name='the-vnb', 
+		windows= [
+			{
+				'script': 'the-vnb',
+			}
+			], 
+		options = {
+			'py2exe': { 
+				'packages':'encodings', 
+				'includes':'cairo, pango, pangocairo, atk, gobject, gio',
+				}
+			},
+		data_files = ['the-vnb.glade']
+)

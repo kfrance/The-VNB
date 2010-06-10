@@ -81,6 +81,9 @@ class nfo_gui:
 		self.quit_menu_item = get_glade_object(self.builder, 'quit_menu_item')
 		self.about_menu_item = get_glade_object(self.builder, "about_menu_item")
 		self.save_button = get_glade_object(self.builder, 'save_button')
+		self.nfo_toggle = get_glade_object(self.builder, 'nfo_toggle')
+		self.poster_toggle = get_glade_object(self.builder, 'poster_toggle')
+		self.fanart_toggle = get_glade_object(self.builder, 'fanart_toggle')
 
 		# Setup tree stores for displaying folder contents and search results
 		self.contents_store = gtk.TreeStore(str);
@@ -134,6 +137,9 @@ class nfo_gui:
 		self.search_results.connect('cursor-changed', self.view_search)
 		self.search_button.connect_after("clicked", self.imdb_search)
 		self.filechooser.connect("current_folder_changed", self.populate_folder_view)
+		self.nfo_toggle.connect("clicked", self.populate_folder_view)
+		self.fanart_toggle.connect("clicked", self.populate_folder_view)
+		self.poster_toggle.connect("clicked", self.populate_folder_view)
 		self.download_button.connect('clicked', self.start_download)
 		self.save_menu_item.connect_object("activate", self.save_select_nfo_folder, "file.save")
 		self.save_button.connect_after("clicked", self.save_select_nfo_folder)
@@ -309,9 +315,11 @@ class nfo_gui:
 		items = self.poster_icons.get_selected_items()
 		if len(items) != 0:
 			thumb = re.sub('\^', '/', self.poster_list[items[0][0]])
+			thumb = re.sub('#', ':', thumb)
 			ext = os.path.splitext(thumb)[1]
 			poster = os.path.join(folder, 'folder' + ext)
 			poster_url = re.sub('thumb', 'original', thumb)
+			print poster_url
 		else:
 			poster = None
 			poster_url = None
@@ -320,6 +328,7 @@ class nfo_gui:
 		items = self.fanart_icons.get_selected_items()
 		if len(items) != 0:
 			thumb = re.sub('\^', '/', self.fanart_list[items[0][0]])
+			thumb = re.sub('#', ':', thumb)
 			ext = os.path.splitext(thumb)[1]
 			fanart = os.path.join(folder, 'fanart' + ext)
 			fanart_url = re.sub('thumb', 'original', thumb)
@@ -357,7 +366,9 @@ class nfo_gui:
 				ext = os.path.splitext(url)[1]
 				if type == "poster" and size == 'thumb':
 					file_name = re.sub("/", "^", url)
+					file_name = re.sub(":", "#", file_name)
 					full_name = os.path.join(poster_folder, file_name)
+					print full_name
 					urllib.urlretrieve(url, full_name)
 					pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 					self.poster_store.append([pixbuf])
@@ -365,6 +376,7 @@ class nfo_gui:
 					poster_num += 1
 				if type == "backdrop" and size == 'thumb':
 					file_name = re.sub("/", "^", url)
+					file_name = re.sub(":", "#", file_name)
 					full_name = os.path.join(fanart_folder, file_name)
 					urllib.urlretrieve(url, full_name)
 					pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
@@ -561,19 +573,57 @@ class nfo_gui:
 		
 	def fill_contents_store(self, path):
 		self.contents_store.clear()
-		file_list = os.listdir(path)
-		file_list.sort()
-		for f in file_list:
+		folder_list = os.listdir(path)
+		folder_list.sort()
+
+		# Remove folders that have information already stored
+		removed_folder_list = []
+		if self.nfo_toggle.get_active() or self.poster_toggle.get_active() or self.fanart_toggle.get_active():
+			for folder in folder_list:
+				full_folder = os.path.join(path, folder)
+				is_dir = os.path.isdir(full_folder)
+				if not is_dir:
+					continue
+				# Add folders without NFO file
+				if self.nfo_toggle.get_active():
+					if 'movie.nfo' not in os.listdir(full_folder):
+						removed_folder_list.append(folder)
+				# Add folders without poster
+				if self.poster_toggle.get_active():
+					exp = re.compile('folder\..*')
+					match = False
+					for f in os.listdir(full_folder):
+						if re.match(exp, f):
+							match = True
+							break
+					if not match:
+						if folder not in removed_folder_list:
+							removed_folder_list.append(folder)
+				# Add folders without fanart
+				if self.fanart_toggle.get_active():
+					exp = re.compile('fanart\..*')
+					match = False
+					for f in os.listdir(full_folder):
+						if re.match(exp, f):
+							match = True
+							break
+					if not match:
+						if folder not in removed_folder_list:
+							removed_folder_list.append(folder)
+		else:
+			removed_folder_list = folder_list
+
+		for f in removed_folder_list:
 			fullname = os.path.join(path, f)
 			is_dir = os.path.isdir(fullname)
 			is_hidden = True if f[0] == '.' else False
 			if is_dir and not is_hidden:
 				self.contents_store.append(None, [f])
 
-	def populate_folder_view(self, fc):
-		folder_name = fc.get_filename()
+	def populate_folder_view(self, junk):
+		folder_name = self.filechooser.get_filename()
 		if folder_name == "":
-			folder_name = fc.get_current_folder()
+			folder_name = self.filechooser.get_current_folder()
 		self.fill_contents_store(folder_name)
 		self.folder_view.set_model(self.contents_store)
 
