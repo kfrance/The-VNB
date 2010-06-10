@@ -85,6 +85,10 @@ class nfo_gui:
 		self.poster_toggle = get_glade_object(self.builder, 'poster_toggle')
 		self.fanart_toggle = get_glade_object(self.builder, 'fanart_toggle')
 
+		# Add icon to window
+		pixbuf = gtk.gdk.pixbuf_new_from_file('clapper.png')
+		self.window.set_icon(pixbuf)
+
 		# Setup tree stores for displaying folder contents and search results
 		self.contents_store = gtk.TreeStore(str);
 		self.search_store = gtk.TreeStore(str)
