@@ -310,7 +310,6 @@ class nfo_gui:
 				folder = self.filechooser.get_current_folder()
 			folder = os.path.join(folder, store.get(i, 0)[0])
 
-		print folder
 		# Get the poster image to download
 		items = self.poster_icons.get_selected_items()
 		if len(items) != 0:
@@ -319,7 +318,6 @@ class nfo_gui:
 			ext = os.path.splitext(thumb)[1]
 			poster = os.path.join(folder, 'folder' + ext)
 			poster_url = re.sub('thumb', 'original', thumb)
-			print poster_url
 		else:
 			poster = None
 			poster_url = None
@@ -368,7 +366,6 @@ class nfo_gui:
 					file_name = re.sub("/", "^", url)
 					file_name = re.sub(":", "#", file_name)
 					full_name = os.path.join(poster_folder, file_name)
-					print full_name
 					urllib.urlretrieve(url, full_name)
 					pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 					self.poster_store.append([pixbuf])
