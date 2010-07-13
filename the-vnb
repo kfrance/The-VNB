@@ -50,7 +50,10 @@ class nfo_gui:
 	def __init__(self):
 		# Setup GUI from file
 		self.builder = gtk.Builder()
-		self.builder.add_from_file("the-vnb.glade")
+		if platform.system() in ('Windows', 'Microsoft'):
+			self.builder.add_from_file("the-vnb.glade")
+		else:
+			self.builder.add_from_file("/usr/share/the-vnb/the-vnb.glade")
 
 		# Get references to GUI objects
 		self.window = get_glade_object(self.builder, "main_window")
@@ -86,7 +89,10 @@ class nfo_gui:
 		self.fanart_toggle = get_glade_object(self.builder, 'fanart_toggle')
 
 		# Add icon to window
-		pixbuf = gtk.gdk.pixbuf_new_from_file('clapper.png')
+		if platform.system() in ('Windows', 'Microsoft'):
+			pixbuf = gtk.gdk.pixbuf_new_from_file('clapper.png')
+		else:
+			pixbuf = gtk.gdk.pixbuf_new_from_file('/usr/share/the-vnb/clapper.png')
 		self.window.set_icon(pixbuf)
 
 		# Setup tree stores for displaying folder contents and search results
