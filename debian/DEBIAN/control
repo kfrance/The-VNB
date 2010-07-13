@@ -1,0 +1,11 @@
+Package: the-vnb
+Version: 0.1.0-1
+Section: Video
+Architecture: all
+Depends: python-gtk2, python-imdbpy 
+Recommends: xbmc
+Maintainer: Kirt Lillywhite [kirt.lillywhite@gmail.com]
+Description: Used to download movie information and save it to a NFO file. 
+             Also download poster and fanart images. Works well in conjunction
+             with XBMC.
+

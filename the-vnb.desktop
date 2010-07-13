@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=0.1.0
+Encoding=UTF-8
+Name=The-VNB
+Type=Application
+Exec=/usr/bin/the-vnb
+Icon=/usr/share/the-vnb/clapper.png
+Terminal=false
+StartupNotify=true
+Comment=Video NFO Builder
+Categories=GNOME;Application;AudioVideo;Multimedia;
