@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python2
 # Copyright (C) 2010 Kirt Lillywhite <kirt.lillywhite@gmail.com>
 
 # This program is free software: you can redistribute it and/or modify
@@ -42,7 +42,7 @@ def get_glade_object(builder, name):
 	if tmp:
 		return tmp
 	else:
-		print "Can't load item from glade file. Is it corrupted?"
+		print("Can't load item from glade file. Is it corrupted?")
 		exit(-1)
 
 
@@ -186,14 +186,14 @@ class nfo_gui:
 
 	def window_changed_state(self, window, event):
 		pass
-		#print "Window changed state"
-		#print event
+		#print("Window changed state")
+		#print(event)
 		#& gtk.gdk.WINDOW_STATE_MAXIMIZED
 
 	def quit_thevnb(self, junk):
 		# See if the window was maximized
 		#state = self.window.get_state()
-		#print state & gtk.gdk.WINDOW_STATE_MAXIMIZED
+		#print(state & gtk.gdk.WINDOW_STATE_MAXIMIZED)
 
 		# Save out where the root movie folder currently is
 		folder_name = self.filechooser.get_filename()
@@ -213,8 +213,8 @@ class nfo_gui:
 			urllib.urlretrieve(fanart_url, fanart)
 
 		# Create str representing NFO file
-		file_str = u'''<?xml version="1.0" encoding="utf-8"?>\n<movie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n'''
-		file_str += u'<title>' + self.title_entry.get_text() + u"</title>\n"
+		file_str = '''<?xml version="1.0" encoding="utf-8"?>\n<movie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n'''
+		file_str += '<title>' + self.title_entry.get_text() + "</title>\n"
 		file_str += "<year>" + self.year_entry.get_text() + '</year>\n'
 		file_str += "<outline>" + self.outline_entry.get_text() + '</outline>\n'
 		buf = self.plot_entry.get_buffer()
@@ -428,6 +428,12 @@ class nfo_gui:
 				self.fanart_store.append([pixbuf])
 				self.fanart_list.append(file)
 
+		# If no image is available display no image file
+		if len(self.fanart_store) == 0:
+			print("No fanart")
+		if len(self.poster_store) == 0:
+			print("No poster")
+
 	def clear_old_info(self):
 		self.poster_store.clear()
 		self.fanart_store.clear()
@@ -637,7 +643,7 @@ class nfo_gui:
 
 gui = nfo_gui()
 if gui == None:
-	print "Can't load gui from file"
+	print("Can't load gui from file")
 	exit(0)
 
 gui.window.show()
