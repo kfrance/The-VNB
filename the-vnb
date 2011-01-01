@@ -133,7 +133,7 @@ class nfo_gui:
 
 		# Connect signals
 		self.window.connect("destroy", self.quit_thevnb)
-		self.folder_view.connect("row-activated", self.select_folder)
+		self.folder_view.connect("cursor-changed", self.select_folder)
 		self.search_results.connect('cursor-changed', self.view_search)
 		self.search_button.connect_after("clicked", self.imdb_search)
 		self.filechooser.connect("current_folder_changed", self.populate_folder_view)
@@ -558,8 +558,8 @@ class nfo_gui:
 		self.search_view.show()
 		
 
-	def select_folder(self, fv, col_num, four):
-		num = col_num[0]
+	def select_folder(self, fv):
+		num = fv.get_cursor()[0][0]
 		t = self.contents_store[num][0]
 		self.title_entry.set_text(t)
 		self.imdb_search(None)
