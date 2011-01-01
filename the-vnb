@@ -164,8 +164,12 @@ class nfo_gui:
 			configfile = open(config_file, 'wb')
 			self.config.write(configfile)
 		# Load content store with root folder info
-		self.fill_contents_store(self.config.get('Program Defaults', 'root folder'))
-		self.filechooser.set_current_folder(self.config.get('Program Defaults', 'root folder'))
+		path = self.config.get('Program Defaults', 'root folder')
+		if not os.path.exists(path):
+			path = os.getcwd()
+
+		self.fill_contents_store(path)
+		self.filechooser.set_current_folder(path)
 
 	def about(self, junk):
 		self.about_dialog = get_glade_object(self.builder, "about_dialog")
@@ -616,7 +620,7 @@ class nfo_gui:
 
 	def populate_folder_view(self, junk):
 		folder_name = self.filechooser.get_filename()
-		if folder_name == "":
+		if folder_name == "" or not os.path.exists(folder_name):
 			folder_name = self.filechooser.get_current_folder()
 		self.fill_contents_store(folder_name)
 		self.folder_view.set_model(self.contents_store)
