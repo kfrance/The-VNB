@@ -343,9 +343,7 @@ class nfo_gui:
 			image_list = []
 			poster_folder = os.path.join(tempfile.gettempdir(),  "posters_" + id)
 			fanart_folder = os.path.join(tempfile.gettempdir(), "fanart_" + id)
-			image_count = 0.0
 			num_images = len(images)
-			poster_num = 0
 			fanart_num = 0
 			for image in images:
 				m = re.search('type="(.*?)".*?url="(.*?)".*?size="(.*?)"', image)
@@ -355,27 +353,44 @@ class nfo_gui:
 				url = m.group(2)
 				size = m.group(3)
 				ext = os.path.splitext(url)[1]
+				image_folder = None
 				if type == "poster" and size == 'thumb':
-					file_name = re.sub("/", "^", url)
-					file_name = re.sub(":", "#", file_name)
-					full_name = os.path.join(poster_folder, file_name)
-					urllib.urlretrieve(url, full_name)
-					pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
-					self.poster_store.append([pixbuf])
-					self.poster_list.append(file_name)
-					poster_num += 1
-				if type == "backdrop" and size == 'thumb':
-					file_name = re.sub("/", "^", url)
-					file_name = re.sub(":", "#", file_name)
-					full_name = os.path.join(fanart_folder, file_name)
-					urllib.urlretrieve(url, full_name)
-					pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
-					self.fanart_store.append([pixbuf])
-					self.fanart_list.append(file_name)
-					fanart_num += 1
-				image_count += 1
-		self.statusbar.pop(self.status_context)
+					image_folder = poster_folder
+					image_store = self.poster_store
+					image_list = self.poster_list
+				elif type == "backdrop" and size == 'thumb':
+					image_folder = fanart_folder
+					image_store = self.fanart_store
+					image_list = self.fanart_list
 
+				if image_folder:
+					file_name = re.sub("/", "^", url)
+					file_name = re.sub(":", "#", file_name)
+					not_downloaded = True
+					count = 0
+					full_name = os.path.join(image_folder, file_name)
+					while not_downloaded:
+						urllib.urlretrieve(url, full_name)
+						try:
+							pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
+							not_downloaded = False
+						except:
+							count += 1
+							not_downloaded = True
+							if count > 9:
+								break
+					if count < 10:
+						image_store.append([pixbuf])
+						image_list.append(file_name)
+		# If no image is available display no image file
+		if len(self.fanart_store) == 0:
+			pixbuf = gtk.gdk.pixbuf_new_from_file('/usr/share/the-vnb/no_fanart.png')
+			self.fanart_store.append([pixbuf])
+			self.fanart_list.append('no_fanart.png')
+		if len(self.poster_store) == 0:
+			pixbuf = gtk.gdk.pixbuf_new_from_file('/usr/share/the-vnb/no_poster.png')
+			self.poster_store.append([pixbuf])
+			self.poster_list.append('no_poster.png')
 
 	def start_download(self, other):
 		# Get which search item was selected
@@ -390,7 +405,7 @@ class nfo_gui:
 		download = False
 		if not os.path.exists(poster_folder):
 			download = True
-			self.download_images(poster_folder, fanart_folder, id)
+			Thread(target=self.download_images, args = (poster_folder, fanart_folder, id)).start()
 
 		# Add posters and fanart to IconViews
 		if not download:
@@ -408,16 +423,16 @@ class nfo_gui:
 				pixbuf = gtk.gdk.pixbuf_new_from_file(full_name)
 				self.fanart_store.append([pixbuf])
 				self.fanart_list.append(file)
+			# If no image is available display no image file
+			if len(self.fanart_store) == 0:
+				pixbuf = gtk.gdk.pixbuf_new_from_file('/usr/share/the-vnb/no_fanart.png')
+				self.fanart_store.append([pixbuf])
+				self.fanart_list.append('no_fanart.png')
+			if len(self.poster_store) == 0:
+				pixbuf = gtk.gdk.pixbuf_new_from_file('/usr/share/the-vnb/no_poster.png')
+				self.poster_store.append([pixbuf])
+				self.poster_list.append('no_poster.png')
 
-		# If no image is available display no image file
-		if len(self.fanart_store) == 0:
-			pixbuf = gtk.gdk.pixbuf_new_from_file('/usr/share/the-vnb/no_fanart.png')
-			self.fanart_store.append([pixbuf])
-			self.fanart_list.append('no_fanart.png')
-		if len(self.poster_store) == 0:
-			pixbuf = gtk.gdk.pixbuf_new_from_file('/usr/share/the-vnb/no_poster.png')
-			self.poster_store.append([pixbuf])
-			self.poster_list.append('no_poster.png')
 
 
 	def clear_old_info(self):
